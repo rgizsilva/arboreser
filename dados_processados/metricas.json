@@ -1,0 +1,238 @@
+{
+  "n": 28437,
+  "por_tau": {
+    "0.5": {
+      "acuracia": 0.8844463199352955,
+      "porte_maior_que_o_real": 0.09139501353869958,
+      "porte_menor_que_o_real": 0.024158666526004853,
+      "f1_macro": 0.8019582011923928
+    },
+    "0.6": {
+      "acuracia": 0.8850441326440904,
+      "porte_maior_que_o_real": 0.08207616837219116,
+      "porte_menor_que_o_real": 0.0328796989837184,
+      "f1_macro": 0.79704811085245
+    },
+    "0.7": {
+      "acuracia": 0.8721735766782712,
+      "porte_maior_que_o_real": 0.0709638850792981,
+      "porte_menor_que_o_real": 0.056862538242430635,
+      "f1_macro": 0.764202925920637
+    }
+  },
+  "relatorio_dados": {
+    "catalogo_conflitos_de_porte": [
+      "Handroanthus chrysotrichus",
+      "Handroanthus umbellatus"
+    ],
+    "catalogo_linhas_sem_porte": 1,
+    "inventario_sem_coordenada_ou_fora_da_cidade": 2,
+    "inventario_arvores_mortas": 439,
+    "grafias_unificadas (inventário -> catálogo)": {
+      "Albizia niopoides": "Albizia nioipoides",
+      "Aspidosperma polyneurum": "Aspidosperma polyneuron",
+      "Balfourodendron riedelianum": "Bafourodendrom riedelianum",
+      "Callicarpa reeversii": "Callicarpa reevesii",
+      "Carinianna estrellensis": "Cariniana estrellensis",
+      "Cyntharexyllum myrianthum": "Citharexylum myrianthum",
+      "Couroupita guianensis": "Corroupita guianensis",
+      "Cybistax antysiphilitica": "Cybistax antisyphilitica",
+      "Jenipa americana": "Genipa americana",
+      "Grevillea branksii": "Grevillea bansksii",
+      "Lophanthera lactescens": "Lophantera lactescens",
+      "Myroxylon peruiferum": "Myroxylum peruiferum",
+      "Pleroma mutabile": "Pleroma mutabilis",
+      "Psidium cattleyanum": "Psidium cattleianum",
+      "Schinus terebinthifolia": "Schinus terebinthifolius",
+      "Senna macranthera": "Senna macrantera",
+      "Tabebuia roseoalba": "Tabebuia roseo-alba"
+    },
+    "deficit_linhas_sem_porte": 16,
+    "deficit_pontos_duplicados_removidos": 374,
+    "deficit_linhas_originais": 28827,
+    "deficit_linhas_finais": 28437,
+    "catalogo_especies_sem_historico_no_inventario": 104,
+    "catalogo_especies_saturadas (10-20-30)": [
+      "Moquilea tomentosa"
+    ]
+  },
+  "distribuicao_porte_deficit": {
+    "Pequeno": 20506,
+    "Médio": 4121,
+    "Grande": 3810
+  },
+  "features": [
+    "larg",
+    "tipo_fiacao",
+    "protecao",
+    "telefonia",
+    "edificacao",
+    "tipo_edificacao",
+    "recuo"
+  ],
+  "laboratorio": {
+    "comparacao": [
+      {
+        "modelo": "Baseline (sempre a classe mais comum)",
+        "acuracia": 0.7211027886204593,
+        "acuracia_balanceada": 0.3333333333333333,
+        "f1_macro": 0.27931811835536574,
+        "porte_maior_que_o_real": 0.0
+      },
+      {
+        "modelo": "Regressão logística",
+        "acuracia": 0.8035306115272356,
+        "acuracia_balanceada": 0.7708121977193283,
+        "f1_macro": 0.7138109130607487,
+        "porte_maior_que_o_real": 0.16014347505011078
+      },
+      {
+        "modelo": "Árvore de decisão (prof. 6)",
+        "acuracia": 0.8794528255441854,
+        "acuracia_balanceada": 0.8358823051533725,
+        "f1_macro": 0.7969883415684825,
+        "porte_maior_que_o_real": 0.10233146956430003
+      },
+      {
+        "modelo": "Random Forest",
+        "acuracia": 0.8925343742307557,
+        "acuracia_balanceada": 0.8427403213102589,
+        "f1_macro": 0.813608936215989,
+        "porte_maior_que_o_real": 0.08706966276330133
+      },
+      {
+        "modelo": "Gradient Boosting (HistGB)",
+        "acuracia": 0.8870133980377677,
+        "acuracia_balanceada": 0.828944090267433,
+        "f1_macro": 0.8034571358761191,
+        "porte_maior_que_o_real": 0.08675317368217463
+      }
+    ],
+    "matriz_confusao_rf": [
+      [
+        19078,
+        793,
+        635
+      ],
+      [
+        222,
+        2851,
+        1048
+      ],
+      [
+        133,
+        225,
+        3452
+      ]
+    ],
+    "ajuste_hiperparametros": [
+      {
+        "min_samples_leaf": 1,
+        "max_depth": 8,
+        "f1_macro": 0.8091071147321514,
+        "acuracia": 0.8892639870591131
+      },
+      {
+        "min_samples_leaf": 1,
+        "max_depth": "sem limite",
+        "f1_macro": 0.7990749126242349,
+        "acuracia": 0.8815979182051552
+      },
+      {
+        "min_samples_leaf": 5,
+        "max_depth": 8,
+        "f1_macro": 0.8109437630879177,
+        "acuracia": 0.8905299433836199
+      },
+      {
+        "min_samples_leaf": 5,
+        "max_depth": "sem limite",
+        "f1_macro": 0.8132302264004129,
+        "acuracia": 0.8923585469634631
+      },
+      {
+        "min_samples_leaf": 20,
+        "max_depth": 8,
+        "f1_macro": 0.8056789091182576,
+        "acuracia": 0.8863452544220558
+      },
+      {
+        "min_samples_leaf": 20,
+        "max_depth": "sem limite",
+        "f1_macro": 0.8091745387970759,
+        "acuracia": 0.8889474979779864
+      }
+    ],
+    "importancia_permutacao": {
+      "largura da calçada (cm)": 0.2388802377130552,
+      "tipo de fiação elétrica": 0.08067266222230092,
+      "proteção da fiação": 0.08997674814719926,
+      "fiação de telefonia/TV": 0.07452646527731718,
+      "presença de edificação": 0.003835722179650869,
+      "tipo de edificação": 0.04119114989295798,
+      "recuo": 0.28260398190749303
+    },
+    "regras_arvore": "|--- fiacao_desprotegida <= 0.50\n|   |--- recuo_presente <= 0.50\n|   |   |--- largura_calcada_cm <= 347.50\n|   |   |   |--- sem_edificacao <= 0.50\n|   |   |   |   |--- class: Pequeno\n|   |   |   |--- sem_edificacao >  0.50\n|   |   |   |   |--- class: Grande\n|   |   |--- largura_calcada_cm >  347.50\n|   |   |   |--- sem_edificacao <= 0.50\n|   |   |   |   |--- class: Médio\n|   |   |   |--- sem_edificacao >  0.50\n|   |   |   |   |--- class: Grande\n|   |--- recuo_presente >  0.50\n|   |   |--- largura_calcada_cm <= 247.50\n|   |   |   |--- largura_calcada_cm <= 165.00\n|   |   |   |   |--- class: Pequeno\n|   |   |   |--- largura_calcada_cm >  165.00\n|   |   |   |   |--- class: Médio\n|   |   |--- largura_calcada_cm >  247.50\n|   |   |   |--- largura_calcada_cm <= 352.50\n|   |   |   |   |--- class: Grande\n|   |   |   |--- largura_calcada_cm >  352.50\n|   |   |   |   |--- class: Grande\n|--- fiacao_desprotegida >  0.50\n|   |--- fiacao_primaria <= 0.50\n|   |   |--- largura_calcada_cm <= 357.50\n|   |   |   |--- sem_edificacao <= 0.50\n|   |   |   |   |--- class: Pequeno\n|   |   |   |--- sem_edificacao >  0.50\n|   |   |   |   |--- class: Pequeno\n|   |   |--- largura_calcada_cm >  357.50\n|   |   |   |--- recuo_presente <= 0.50\n|   |   |   |   |--- class: Pequeno\n|   |   |   |--- recuo_presente >  0.50\n|   |   |   |   |--- class: Pequeno\n|   |--- fiacao_primaria >  0.50\n|   |   |--- recuo_presente <= 0.50\n|   |   |   |--- sem_edificacao <= 0.50\n|   |   |   |   |--- class: Pequeno\n|   |   |   |--- sem_edificacao >  0.50\n|   |   |   |   |--- class: Pequeno\n|   |   |--- recuo_presente >  0.50\n|   |   |   |--- largura_calcada_cm <= 287.50\n|   |   |   |   |--- class: Pequeno\n|   |   |   |--- largura_calcada_cm >  287.50\n|   |   |   |   |--- class: Pequeno\n",
+    "acuracia_arvore_interpretavel": 0.8766747547209621,
+    "classes_matriz": [
+      "Pequeno",
+      "Médio",
+      "Grande"
+    ]
+  },
+  "extra": {
+    "risco_hierarquico_validacao": {
+      "n_treino": 13097,
+      "n_teste": 13139,
+      "logloss_taxa_global": 0.10223268600514382,
+      "logloss_taxa_bruta_por_especie": 0.10049479136788683,
+      "logloss_hierarquico": 0.09994959887362968,
+      "logloss_bruta_especies_pouco_vistas": 0.08887774421811928,
+      "logloss_hierarquico_especies_pouco_vistas": 0.07790456710253403
+    },
+    "risco_arvore": {
+      "n": 26236,
+      "taxa_problema": 0.021420948315291965,
+      "roc_auc": 0.8314162284455215,
+      "pr_auc": 0.22585233076287428,
+      "pr_auc_baseline": 0.021420948315291965,
+      "captura_top10pct": 0.5836298932384342
+    },
+    "revisao_rotulos": {
+      "limite": 0.03,
+      "n_suspeitos": 370,
+      "pct_suspeitos": 0.01301121777965327,
+      "por_setor_top": {
+        "N-15": 70,
+        "N-14": 30,
+        "N-10": 30,
+        "S-09": 23,
+        "N-13": 18
+      }
+    },
+    "anomalias_inventario": {
+      "n": 97,
+      "motivos": {
+        "combinação atípica": 58,
+        "copa 4× maior que a altura": 23,
+        "copa < 10% da altura": 14,
+        "altura > 30 m": 2
+      }
+    },
+    "auditoria_catalogo": {
+      "n_especies": 37,
+      "concordancia": 0.6216216216216216,
+      "n_divergentes": 14
+    },
+    "canteiro": {
+      "n": 28284,
+      "mae_modelo_cm": 1.6836327922909042,
+      "mae_baseline_cm": 52.85886013293735,
+      "r2": 0.9864385185846745
+    },
+    "surtos": {
+      "n_surtos": 12,
+      "arvores_em_surtos": 106
+    }
+  }
+}
