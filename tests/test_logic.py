@@ -1,4 +1,3 @@
-"""Testes de sanidade das regras. Rode: pytest -q"""
 import sys
 from pathlib import Path
 
@@ -95,7 +94,6 @@ def test_laboratorio_salvo_em_metricas(b):
     assert rf["f1_macro"] > base_["f1_macro"]
 
 
-# ---------------------------------------------------------------- ML adicional
 import ml_extra as MX
 
 

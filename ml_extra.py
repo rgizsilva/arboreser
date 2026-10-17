@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import numpy as np
@@ -16,16 +15,10 @@ PORTES = ["Pequeno", "Médio", "Grande"]
 
 
 def _encolher(n: pd.Series, y: pd.Series, prior: pd.Series | float, k: float) -> pd.Series:
-    """Média posterior (y + k*prior) / (n + k): puxa grupos pequenos para o nível acima."""
     return (y + k * prior) / (n + k)
 
 
 def risco_hierarquico(v: pd.DataFrame, k_fam: float = 60, k_gen: float = 30, k_esp: float = 20) -> dict:
-    """Estima P(problema) por família, gênero e espécie com encolhimento hierárquico.
-
-    v: árvores vivas com colunas especie, genero, familia, problema (0/1).
-    Devolve dict com 'global' e Series por nível.
-    """
     p0 = float(v["problema"].mean())
     fam = v.groupby("familia")["problema"].agg(["size", "sum"])
     fam["p"] = _encolher(fam["size"], fam["sum"], p0, k_fam)
@@ -40,9 +33,6 @@ def risco_hierarquico(v: pd.DataFrame, k_fam: float = 60, k_gen: float = 30, k_e
 
 
 def estimar_risco(cat: pd.DataFrame, modelo: dict) -> pd.DataFrame:
-    """Aplica o modelo hierárquico ao catálogo (inclusive espécies sem nenhuma árvore).
-
-    Acrescenta: risco_eb, risco_lo, risco_hi (intervalo de 90 %) e risco_fonte."""
     c = cat.copy()
     p0 = modelo["global"]
     fam = c["familia"].map(modelo["familia"])
@@ -60,8 +50,6 @@ def estimar_risco(cat: pd.DataFrame, modelo: dict) -> pd.DataFrame:
 
 
 def validar_risco(v: pd.DataFrame, semente: int = 0) -> dict:
-    """Prova que o encolhimento hierárquico prevê melhor que a taxa bruta.
-    Treina em metade das árvores e mede log-loss na outra metade (menor = melhor)."""
     rng = np.random.default_rng(semente)
     m = rng.random(len(v)) < 0.5
     A, B = v[m], v[~m]
@@ -70,7 +58,7 @@ def validar_risco(v: pd.DataFrame, semente: int = 0) -> dict:
     pB_eb = B["especie"].map(mod["especie"]).fillna(B["genero"].map(mod["genero"])).fillna(
         B["familia"].map(mod["familia"])).fillna(p0)
     bruto = A.groupby("especie")["problema"].mean()
-    pB_bruto = B["especie"].map(bruto).fillna(p0).clip(0.005, 0.995)  
+    pB_bruto = B["especie"].map(bruto).fillna(p0).clip(0.005, 0.995)
     eps = 1e-6
     ll = lambda p: float(log_loss(B["problema"], np.clip(p, eps, 1 - eps), labels=[0, 1]))
     pequenas = B["especie"].map(A["especie"].value_counts()).fillna(0) < 20
@@ -91,8 +79,6 @@ _CAT_COLO = {"Boa": 0, "Média": 1, "Ruim": 2}
 
 
 def _feat_arvore(v: pd.DataFrame, k_viz: int = 10) -> pd.DataFrame:
-    """Variáveis por árvore. Inclui taxa de problema nas k árvores vizinhas (exclui a própria)
-    e o 'gênero' como categoria."""
     X = pd.DataFrame(index=v.index)
     X["altura_cm"] = pd.to_numeric(v["altura_cm"], errors="coerce").clip(upper=3000)
     X["copa_cm"] = pd.to_numeric(v["copa_cm"], errors="coerce").clip(upper=2500)
@@ -110,8 +96,6 @@ def _feat_arvore(v: pd.DataFrame, k_viz: int = 10) -> pd.DataFrame:
 
 
 def modelo_risco_arvore(vivas: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
-    """HistGradientBoosting com validação cruzada AGRUPADA POR SETOR.
-    Devolve (árvores com 'risco_ml' fora-da-amostra, métricas)."""
     v = vivas.dropna(subset=["estado"]).copy()
     v["problema"] = v["estado"].isin(PROBLEMA).astype(int)
     X, y, g = _feat_arvore(v), v["problema"].to_numpy(), v["setor"].to_numpy()
@@ -136,7 +120,6 @@ def modelo_risco_arvore(vivas: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
 
 
 def treinar_risco_arvore_final(v: pd.DataFrame) -> tuple[HistGradientBoostingClassifier, pd.DataFrame]:
-    """Modelo final (todas as árvores) — usado para pontuar árvores novas."""
     v = v.dropna(subset=["estado"]).copy()
     v["problema"] = v["estado"].isin(PROBLEMA).astype(int)
     X = _feat_arvore(v)
@@ -148,7 +131,6 @@ def treinar_risco_arvore_final(v: pd.DataFrame) -> tuple[HistGradientBoostingCla
 
 
 def fila_vistoria(v_risco: pd.DataFrame, n: int = 200) -> pd.DataFrame:
-    """Árvores AINDA classificadas como Excelente/Boa com maior risco previsto (vistoria preventiva)."""
     ok = v_risco[~v_risco["estado"].isin(PROBLEMA)]
     f = ok.sort_values("risco_ml", ascending=False).head(n).copy()
     f["google_maps"] = f.apply(lambda r: f"https://www.google.com/maps?q={r['lat']:.6f},{r['lon']:.6f}", axis=1)
@@ -157,7 +139,6 @@ def fila_vistoria(v_risco: pd.DataFrame, n: int = 200) -> pd.DataFrame:
 
 
 def surtos_fitossanitarios(v: pd.DataFrame, eps_m: float = 80.0, min_pontos: int = 6) -> pd.DataFrame:
-    """DBSCAN nas árvores com problema: concentrações espaciais (possível praga/manejo ruim)."""
     p = v[v["estado"].isin(PROBLEMA)].copy()
     if len(p) < min_pontos:
         return pd.DataFrame()
@@ -175,9 +156,6 @@ def surtos_fitossanitarios(v: pd.DataFrame, eps_m: float = 80.0, min_pontos: int
 
 
 def revisar_rotulos(d: pd.DataFrame, codificar, features_modelo, limite: float = 0.03) -> tuple[pd.DataFrame, dict]:
-    """Probabilidades fora-da-amostra (validação por setor). Pontos em que o modelo dá
-    P(porte levantado) < `limite` são candidatos a conferência: ou o levantamento tem erro,
-    ou há algo no local que as 7 variáveis não captam."""
     from sklearn.ensemble import RandomForestClassifier
     X, y, g = codificar(d), d["porte"].to_numpy(), d["setor"].to_numpy()
     classes = sorted(set(y))
@@ -201,7 +179,6 @@ def revisar_rotulos(d: pd.DataFrame, codificar, features_modelo, limite: float =
 
 
 def anomalias_inventario(vivas: pd.DataFrame, contaminacao: float = 0.004) -> pd.DataFrame:
-    """IsolationForest em (log altura, log copa, log copa/altura) + regras duras (> 30 m / copa > 25 m)."""
     v = vivas.dropna(subset=["altura_cm", "copa_cm"]).copy()
     v = v[(v["altura_cm"] > 0) & (v["copa_cm"] > 0)]
     X = np.column_stack([np.log(v["altura_cm"]), np.log(v["copa_cm"]), np.log(v["copa_cm"] / v["altura_cm"])])
@@ -217,11 +194,7 @@ def anomalias_inventario(vivas: pd.DataFrame, contaminacao: float = 0.004) -> pd
     return s[["setor", "especie", "altura_cm", "copa_cm", "motivo", "anomalia_score", "google_maps"]].reset_index(drop=True)
 
 
-
 def auditar_catalogo(esp: pd.DataFrame, min_n: int = 15) -> tuple[pd.DataFrame, dict]:
-    """Classificador de porte (altura e copa medianas observadas), avaliado por leave-one-out.
-    Espécies em que P(porte do catálogo) é baixa merecem revisão — com a ressalva de que
-    o inventário contém árvores jovens, então altura/copa observadas SUBESTIMAM o porte adulto."""
     from sklearn.linear_model import LogisticRegression
     from sklearn.model_selection import LeaveOneOut, cross_val_predict
     from sklearn.pipeline import make_pipeline
@@ -243,13 +216,11 @@ def auditar_catalogo(esp: pd.DataFrame, min_n: int = 15) -> tuple[pd.DataFrame, 
     return saida, {"n_especies": int(len(e)), "concordancia": acc, "n_divergentes": int(e["divergente"].sum())}
 
 
-
 def _feat_canteiro(d: pd.DataFrame, codificar) -> pd.DataFrame:
     return codificar(d)
 
 
 def avaliar_canteiro(d: pd.DataFrame, codificar) -> dict:
-    """MAE (cm) por validação cruzada por setor, contra baseline (mediana) e regra simples."""
     x = d.dropna(subset=["canteiro_cm"])
     X, y, g = _feat_canteiro(x, codificar), x["canteiro_cm"].to_numpy(), x["setor"].to_numpy()
     oof, base = np.zeros(len(x)), np.zeros(len(x))
@@ -274,7 +245,7 @@ def prever_canteiro(modelo, entrada: dict, codificar) -> float:
 
 def _matriz_esp_setor(vivas: pd.DataFrame) -> pd.DataFrame:
     m = vivas.pivot_table(index="especie", columns="setor", values="E", aggfunc="size", fill_value=0)
-    return m.div(m.sum(axis=1), axis=0)  # onde cada espécie está distribuída
+    return m.div(m.sum(axis=1), axis=0)
 
 
 def _cos(A: np.ndarray, B: np.ndarray) -> np.ndarray:
@@ -285,13 +256,11 @@ def _cos(A: np.ndarray, B: np.ndarray) -> np.ndarray:
 
 def especies_parecidas(esp: pd.DataFrame, vivas: pd.DataFrame, especie: str, n: int = 6,
                        mesmo_porte: bool = True, so_nao_saturadas: bool = True) -> pd.DataFrame:
-    """Item-item: combina (a) traços (porte, família, gênero, altura/copa) e (b) padrão de ocorrência
-    nos setores. Serve para achar substitutas de espécies saturadas ou indisponíveis no viveiro."""
     e = esp.reset_index(drop=True)
     if especie not in set(e["especie"]):
         return pd.DataFrame()
     T = pd.get_dummies(e[["porte", "familia", "genero"]].fillna("?"), dtype=float)
-    T["porte"] = 0.0  # evita dupla contagem; porte filtra abaixo
+    T["porte"] = 0.0
     w = np.array([1.0 if c.startswith("familia_") else 2.0 if c.startswith("genero_") else 0.0 for c in T.columns])
     Tm = T.to_numpy() * w
     for col in ("altura_med_cm", "copa_med_cm"):
@@ -324,8 +293,6 @@ def setores_parecidos(vivas: pd.DataFrame, setor: str, n: int = 5) -> pd.DataFra
 
 def recomendar_por_setores_parecidos(esp: pd.DataFrame, vivas: pd.DataFrame, setor: str,
                                      n_viz: int = 5, top: int = 10) -> pd.DataFrame:
-    """Filtragem colaborativa (setor-setor): espécies que vão bem nos setores mais parecidos
-    (baixo risco fitossanitário estimado) mas que o setor ainda quase não tem."""
     viz = setores_parecidos(vivas, setor, n_viz)
     if viz.empty:
         return pd.DataFrame()
@@ -347,7 +314,6 @@ def _dist_rota(xy: np.ndarray, ordem: list[int]) -> float:
 
 
 def _rota(xy: np.ndarray) -> list[int]:
-    """Vizinho mais próximo a partir do ponto mais a oeste + melhoria 2-opt."""
     n = len(xy)
     if n <= 2:
         return list(range(n))
@@ -370,8 +336,6 @@ def _rota(xy: np.ndarray) -> list[int]:
 
 
 def dividir_equipes(plano: pd.DataFrame, n_equipes: int, mudas_por_equipe_dia: int = 20) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Divide o plano em equipes geograficamente compactas (K-Means) e ordena cada rota.
-    Devolve (plano com equipe/dia/ordem, resumo por equipe com distância a pé estimada)."""
     if plano.empty:
         return plano, pd.DataFrame()
     n_equipes = int(max(1, min(n_equipes, len(plano))))

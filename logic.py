@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import json
@@ -19,8 +18,7 @@ _PARA_UTM = Transformer.from_crs("epsg:4326", "epsg:32723", always_xy=True)
 PORTES = ["Pequeno", "Médio", "Grande"]
 LIM_ESPECIE, LIM_GENERO, LIM_FAMILIA = 0.10, 0.20, 0.30
 RAIO_PADRAO_M = 100
-TAU_PADRAO = 0.70  
-
+TAU_PADRAO = 0.70
 
 OPCOES = {
     "tipo_fiacao": [
@@ -51,7 +49,6 @@ PERFIS = {
 
 
 def codificar(df: pd.DataFrame) -> pd.DataFrame:
-    """Converte as colunas descritivas em números (mapeamento fixo, sem pickle)."""
     X = pd.DataFrame(index=df.index)
     X["larg"] = pd.to_numeric(df["larg"], errors="coerce").fillna(250)
     for col, mapa in _COD.items():
@@ -70,8 +67,6 @@ def treinar_modelo(deficit: pd.DataFrame) -> RandomForestClassifier:
 
 
 def decidir_porte(probs: dict[str, float], tau: float = TAU_PADRAO) -> str:
-    """Escolhe o MAIOR porte p tal que P(porte real >= p) >= tau.
-    Com tau > 0.5 o critério é conservador: só sobe de porte com confiança."""
     if probs.get("Grande", 0) >= tau:
         return "Grande"
     if probs.get("Médio", 0) + probs.get("Grande", 0) >= tau:
@@ -87,19 +82,18 @@ def prever_porte(modelo, entrada: dict, tau: float = TAU_PADRAO) -> tuple[str, d
     return decidir_porte(probs, tau), probs
 
 
-
 @dataclass
 class Base:
     deficit: pd.DataFrame
-    arvores: pd.DataFrame        
-    especies: pd.DataFrame       
-    concentracao: pd.DataFrame   
+    arvores: pd.DataFrame
+    especies: pd.DataFrame
+    concentracao: pd.DataFrame
     metricas: dict
     vivas: pd.DataFrame
     arvore_kd: cKDTree
     modelo: RandomForestClassifier
-    canteiro: object = None            
-    extras: dict = None                
+    canteiro: object = None
+    extras: dict = None
 
 
 def carregar_base() -> Base:
@@ -129,13 +123,11 @@ def latlon_para_utm(lat: float, lon: float) -> tuple[float, float]:
 
 def ponto_mais_proximo(base: Base, setor: str, e: float, n: float,
                        max_m: float = 30.0) -> tuple[pd.Series | None, float]:
-    """Ponto de déficit do setor mais próximo de (e, n). Devolve (None, dist) se > max_m."""
     pts = base.deficit[base.deficit["setor"] == setor]
     if pts.empty:
         return None, float("inf")
     dist, i = cKDTree(pts[["E", "N"]].to_numpy()).query([e, n])
     return (pts.iloc[int(i)] if dist <= max_m else None), float(dist)
-
 
 
 def vizinhanca(base: Base, e: float, n: float, raio: float = RAIO_PADRAO_M) -> pd.DataFrame:
@@ -145,7 +137,6 @@ def vizinhanca(base: Base, e: float, n: float, raio: float = RAIO_PADRAO_M) -> p
 
 def _componentes(esp: pd.DataFrame, viz: pd.DataFrame | None,
                  extra: pd.DataFrame | None = None) -> pd.DataFrame:
-    """Calcula os 4 componentes (0-1) para cada espécie candidata."""
     c = esp.copy()
     c["cidade"] = 1 - np.minimum(c["share_especie"] / 0.05, 1)
     gen = np.minimum(c["share_genero"] / LIM_GENERO, 1)
@@ -182,7 +173,7 @@ def _justificativa(r: pd.Series) -> str:
     else:
         partes.append("sem histórico local")
     if "risco_eb" in r.index and r["n_inventario"] < 20:
-        partes.append(f"risco estimado {r['risco_eb']*100:.1f}% (pelo {r['risco_fonte']})")
+        partes.append(f"chance de problema estimada em {r['risco_eb']*100:.1f}% (com base no {r['risco_fonte']})")
     if r["n_local_esp"] == 0:
         partes.append("nenhuma igual por perto")
     else:
@@ -195,7 +186,6 @@ def _justificativa(r: pd.Series) -> str:
 def ranquear_especies(base: Base, porte: str, viz: pd.DataFrame | None = None,
                       perfil: str = "Equilibrado", incluir_sem_historico: bool = True,
                       extra: pd.DataFrame | None = None, top_n: int = 10) -> pd.DataFrame:
-    """Espécies do porte indicado, ordenadas por pontuação (0-100) com justificativa."""
     esp = base.especies[base.especies["porte"] == porte]
     esp = esp[~esp["saturada"]]
     if not incluir_sem_historico:
@@ -214,15 +204,12 @@ def ranquear_especies(base: Base, porte: str, viz: pd.DataFrame | None = None,
 
 
 def especies_saturadas(base: Base) -> pd.DataFrame:
-    """Espécies/gêneros/famílias acima dos limites 10-20-30 (para transparência)."""
     c = base.concentracao
     lim = {"especie": LIM_ESPECIE, "genero": LIM_GENERO, "familia": LIM_FAMILIA}
     return c[c.apply(lambda r: r["share"] >= lim[r["nivel"]], axis=1)].sort_values("share", ascending=False)
 
 
-
 def _contagem_raio(pontos: np.ndarray, alvo: pd.DataFrame, raio: float) -> np.ndarray:
-    """Quantas árvores de `alvo` existem a até `raio` metros de cada ponto."""
     if alvo.empty:
         return np.zeros(len(pontos), dtype=int)
     kd = cKDTree(alvo[["E", "N"]].to_numpy())
@@ -231,11 +218,6 @@ def _contagem_raio(pontos: np.ndarray, alvo: pd.DataFrame, raio: float) -> np.nd
 
 def locais_para_especie(base: Base, especie: str, permitir_porte_maior: bool = False,
                         raio: float = RAIO_PADRAO_M) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Retorna (pontos, resumo_por_setor).
-
-    pontos: pontos de déficit compatíveis com o porte da espécie, com a contagem
-    de árvores da mesma espécie/gênero no raio. 'livre' = nenhuma da espécie por perto.
-    """
     linha = base.especies[base.especies["especie"] == especie]
     if linha.empty:
         return pd.DataFrame(), pd.DataFrame()
@@ -266,7 +248,6 @@ def locais_para_especie(base: Base, especie: str, permitir_porte_maior: bool = F
 
 
 def espalhar(pontos: pd.DataFrame, n: int, dist_min: float = 40.0) -> pd.DataFrame:
-    """Seleciona até n pontos mantendo distância mínima entre eles (evita plantio em bloco)."""
     escolhidos: list[int] = []
     xy = pontos[["E", "N"]].to_numpy()
     for i in range(len(pontos)):
@@ -277,12 +258,9 @@ def espalhar(pontos: pd.DataFrame, n: int, dist_min: float = 40.0) -> pd.DataFra
     return pontos.iloc[escolhidos]
 
 
-
 def gerar_plano(base: Base, setor: str, n_arvores: int, perfil: str = "Equilibrado",
                 max_share_plano: float = 0.10, raio: float = RAIO_PADRAO_M,
                 incluir_sem_historico: bool = True, dist_min: float = 15.0) -> pd.DataFrame:
-    """Plano de plantio para um setor: escolhe os pontos de déficit e atribui espécies
-    respeitando porte, diversidade local e um teto de participação por espécie no plano."""
     pts = base.deficit[base.deficit["setor"] == setor].copy()
     if pts.empty:
         return pd.DataFrame()
@@ -314,7 +292,6 @@ def gerar_plano(base: Base, setor: str, n_arvores: int, perfil: str = "Equilibra
     return pd.DataFrame(linhas)
 
 
-
 def resumo_setores(base: Base) -> pd.DataFrame:
     d = base.deficit.pivot_table(index="setor", columns="porte", values="E", aggfunc="size", fill_value=0)
     for p in PORTES:
@@ -335,10 +312,9 @@ def resumo_setores(base: Base) -> pd.DataFrame:
     return r.reset_index().rename(columns={"index": "setor"}).sort_values("déficit relativo", ascending=False)
 
 
-
-from sklearn.cluster import DBSCAN, KMeans  
-from sklearn.metrics import silhouette_score  
-from sklearn.preprocessing import StandardScaler  
+from sklearn.cluster import DBSCAN, KMeans
+from sklearn.metrics import silhouette_score
+from sklearn.preprocessing import StandardScaler
 
 _ROTULO_CAMPO = {
     "tipo_fiacao": "Fiação elétrica", "protecao": "Proteção da fiação", "telefonia": "Telefonia/TV",
@@ -347,8 +323,6 @@ _ROTULO_CAMPO = {
 
 
 def analise_what_if(modelo, entrada: dict, tau: float = TAU_PADRAO) -> pd.DataFrame:
-    """Análise contrafactual: muda UMA condição por vez e mostra o que acontece com o porte.
-    Responde 'o que mudaria a recomendação?' — explicabilidade local do modelo."""
     base_porte, base_p = prever_porte(modelo, entrada, tau)
     linhas = []
     for campo, opcoes in OPCOES.items():
@@ -383,7 +357,7 @@ CAMPOS_CLUSTER = ["déficit relativo", "% déficit pequeno", "% déficit grande"
 
 def perfil_setores(base: Base) -> pd.DataFrame:
     r = resumo_setores(base).set_index("setor")
-    r = r[r["árvores"] >= 10]  # setores com amostra mínima de inventário
+    r = r[r["árvores"] >= 10]
     sh = base.vivas.groupby("setor")["especie"].agg(_shannon).rename("diversidade (Shannon)")
     r = r.join(sh)
     r["% déficit pequeno"] = r["déficit pequeno"] / r["déficit total"].replace(0, np.nan)
@@ -393,8 +367,6 @@ def perfil_setores(base: Base) -> pd.DataFrame:
 
 
 def agrupar_setores(base: Base, k: int = 4) -> tuple[pd.DataFrame, pd.DataFrame, float]:
-    """K-Means (não supervisionado) sobre o perfil de cada setor.
-    Devolve (setores com cluster, perfil médio por cluster, silhouette)."""
     p = perfil_setores(base)
     Z = StandardScaler().fit_transform(p[CAMPOS_CLUSTER])
     km = KMeans(n_clusters=k, n_init=20, random_state=42).fit(Z)
@@ -419,8 +391,6 @@ def silhouette_por_k(base: Base, ks=range(2, 8)) -> pd.DataFrame:
 
 
 def hotspots(base: Base, eps_m: float = 60.0, min_pontos: int = 25) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """DBSCAN (não supervisionado) sobre as coordenadas do déficit: acha áreas contíguas
-    com muitos pontos sem árvore. Pontos isolados viram ruído (-1)."""
     d = base.deficit.copy()
     d["area"] = DBSCAN(eps=eps_m, min_samples=min_pontos).fit_predict(d[["E", "N"]].to_numpy())
     cl = d[d["area"] >= 0]

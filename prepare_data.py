@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import difflib
@@ -25,9 +24,7 @@ PASTA_DADOS = Path("dados")
 PASTA_SAIDA = Path("dados_processados")
 PASTA_SAIDA.mkdir(exist_ok=True)
 
-
 _UTM = Transformer.from_crs("epsg:32723", "epsg:4326", always_xy=True)
-
 
 NAO_JUNTAR = {
     ("Callistemon imperialis", "Callistemon viminalis"),
@@ -47,7 +44,6 @@ def limpar_texto(s: pd.Series) -> pd.Series:
     return s.astype("string").str.strip().str.replace(r"\s+", " ", regex=True)
 
 
-
 def catalogo() -> pd.DataFrame:
     e = pd.read_excel(PASTA_DADOS / "ANEXO_VIII_-_Lista_de_espécies.xlsx")
     e.columns = ["especie", "porte"]
@@ -59,7 +55,6 @@ def catalogo() -> pd.DataFrame:
     conflito = e.groupby("especie")["porte"].nunique()
     conflito = conflito[conflito > 1].index.tolist()
     ordem = {p: i for i, p in enumerate(PORTES)}
-    # Na divergência, vale o MENOR porte (decisão conservadora).
     e["_o"] = e["porte"].map(ordem)
     e = e.sort_values("_o").drop_duplicates("especie").drop(columns="_o")
     relatorio["catalogo_conflitos_de_porte"] = conflito
@@ -83,17 +78,14 @@ def inventario(cat: pd.DataFrame) -> pd.DataFrame:
     i["familia"] = limpar_texto(i["familia"])
     i["estado"] = limpar_texto(i["estado"]).str.capitalize()
 
-    
     fora = (i["E"] > 230000) | (i["N"] > 7_680_000) | i[["E", "N"]].isna().any(axis=1)
     relatorio["inventario_sem_coordenada_ou_fora_da_cidade"] = int(fora.sum())
     i = i[~fora].copy()
 
-    # Árvores mortas — são "vagas" de reposição, não espécies
     i["viva"] = ~i["especie"].str.lower().isin(["morta"])
     relatorio["inventario_arvores_mortas"] = int((~i["viva"]).sum())
     i.loc[~i["viva"], "especie"] = "Morta"
 
-    
     nomes_inv = set(i.loc[i["viva"], "especie"].dropna())
     nomes_cat = set(cat["especie"])
     mapa = {}
@@ -106,7 +98,6 @@ def inventario(cat: pd.DataFrame) -> pd.DataFrame:
     relatorio["grafias_unificadas (inventário -> catálogo)"] = mapa
 
     i["genero"] = i["especie"].str.split().str[0]
-    # família faltante: usa a mais comum do gênero
     fam_gen = (i.dropna(subset=["familia"]).groupby("genero")["familia"]
                  .agg(lambda s: s.value_counts().index[0]))
     i["familia"] = i["familia"].fillna(i["genero"].map(fam_gen))
@@ -139,7 +130,6 @@ def deficit() -> pd.DataFrame:
     d["recuo"] = limpar_texto(d["Recuo"]).fillna("Não se aplica")
     d["larg"] = d["larg"].fillna(d["larg"].median())
 
-    
     dup = d.duplicated(subset=["E", "N"], keep="first")
     relatorio["deficit_pontos_duplicados_removidos"] = int(dup.sum())
     d = d[~dup].copy()
@@ -160,7 +150,6 @@ def deficit() -> pd.DataFrame:
             "edificacao", "tipo_edificacao", "recuo", "canteiro_cm", "elementos_urbanos",
             "condicoes", "porte"]
     return d[cols].reset_index(drop=True)
-
 
 
 def estatisticas_especies(cat: pd.DataFrame, inv: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -204,7 +193,7 @@ def estatisticas_especies(cat: pd.DataFrame, inv: pd.DataFrame) -> tuple[pd.Data
 
 def validar_modelo(d: pd.DataFrame) -> dict:
     X, y, g = codificar(d), d["porte"].to_numpy(), d["setor"].to_numpy()
-    classes = sorted(set(y))  
+    classes = sorted(set(y))
     probs = np.zeros((len(d), len(classes)))
     for tr, te in GroupKFold(5).split(X, y, g):
         m = RandomForestClassifier(n_estimators=200, min_samples_leaf=5, class_weight="balanced",
@@ -283,7 +272,6 @@ def laboratorio_ml(d: pd.DataFrame) -> dict:
                           "f1_macro": float(f1_score(real, p, average="macro")),
                           "acuracia": float((p == real).mean())})
 
-    
     imp = np.zeros(len(FEATURES))
     for tr, te in cv:
         m = RandomForestClassifier(n_estimators=200, min_samples_leaf=5, class_weight="balanced",
@@ -292,7 +280,6 @@ def laboratorio_ml(d: pd.DataFrame) -> dict:
         imp += r.importances_mean / len(cv)
     importancia = {NOMES_LEGIVEIS[f]: float(v) for f, v in zip(FEATURES, imp)}
 
-    
     B = _binarias(d)
     arv = DecisionTreeClassifier(max_depth=4, min_samples_leaf=50, class_weight="balanced", random_state=42)
     pred = np.empty(len(d), dtype=object)
@@ -307,7 +294,6 @@ def laboratorio_ml(d: pd.DataFrame) -> dict:
 
 
 def ml_extra(inv: pd.DataFrame, d: pd.DataFrame, esp: pd.DataFrame) -> tuple[pd.DataFrame, dict, dict]:
-    """Módulos adicionais de ML (ver ml_extra.py). Devolve (especies atualizado, métricas, tabelas)."""
     vivas = inv[inv["viva"]].copy()
     vivas["problema"] = vivas["estado"].isin(X.PROBLEMA).astype(int)
     vivas = vivas.dropna(subset=["estado"])
