@@ -49,8 +49,8 @@ def cabecalho():
         div[data-testid="stMetric"] {{background:#F1F7EF; padding:.8rem 1rem; border-radius:10px;}}
         </style>
         <div class="cab">{img}<div>
-          <h1>Arboreser · Recomendador de arborização</h1>
-          <p>Ribeirão Preto / SP — onde e o que plantar, com diversidade e segurança</p>
+          <h1>Arboreser · Recomendação Inteligente de Espécies Arbóreas para Plantio Urbano</h1>
+          <p>Ribeirão Preto / SP</p>
         </div></div>
         """,
         unsafe_allow_html=True,
@@ -448,12 +448,12 @@ def pagina_saude(b: L.Base):
 cabecalho()
 dados = base()
 PAGINAS = {
-    "📊 Panorama": pagina_panorama,
-    "🌱 Que espécie plantar aqui?": pagina_especie_para_local,
-    "📍 Onde plantar esta espécie?": pagina_local_para_especie,
-    "📋 Plano de plantio": pagina_plano,
-    "🗺️ Mapa das vagas livres": pagina_mapa,
-    "🩺 Saúde e manutenção": pagina_saude,
+    "Panorama de arborização": pagina_panorama,
+    "Qual espécie plantar aqui?": pagina_especie_para_local,
+    "Onde plantar esta espécie?": pagina_local_para_especie,
+    "Plano de plantio": pagina_plano,
+    "Mapa das vagas livres para plantio": pagina_mapa,
+    "Saúde e manutenção das árvores": pagina_saude,
 }
 escolha = st.sidebar.radio("Menu", list(PAGINAS))
 st.sidebar.caption("Fonte: inventário e levantamento de déficit de Ribeirão Preto (jan/2022).")
