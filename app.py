@@ -193,7 +193,7 @@ def pagina_especie_para_local(b: L.Base):
 
     clique = ret.get("last_clicked") if ret else None
     if not clique:
-        st.info("👆 Clique no mapa para escolher o local e ver a recomendação.")
+        st.info("Clique no mapa para escolher o local e ver a recomendação.")
         return
     e, n = L.latlon_para_utm(clique["lat"], clique["lng"])
     viz = L.vizinhanca(b, e, n, raio)
